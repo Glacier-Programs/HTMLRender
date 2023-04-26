@@ -6,6 +6,11 @@ use winit::{
 
 mod render;
 
+/*
+ * There is a WindowState and a SceneState
+ * Window 
+ */
+
 async fn run() {
     env_logger::init();
     let event_loop = EventLoop::new();
