@@ -5,6 +5,8 @@ use winit::{
 };
 
 mod render;
+mod component;
+mod update_commands;
 
 /*
  * There is a WindowState and a SceneState
