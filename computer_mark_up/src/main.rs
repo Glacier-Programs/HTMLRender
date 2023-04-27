@@ -5,13 +5,19 @@ use winit::{
 };
 
 mod render;
+
 mod component;
 mod update_commands;
+mod input_handler;
+
 mod file_reader;
 
 /*
  * There is a WindowState and a SceneState
- * Window 
+ * Window controls window events and rendering
+ * Scene controls everything else including:
+ * - Nonwindow Input
+ * - Component Management
  */
 
 async fn run() {
@@ -19,6 +25,7 @@ async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     let mut ws = render::window_state::WindowState::new(window).await;
+    let mut ih = input_handler::InputHandler::new_default();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
