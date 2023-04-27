@@ -1,6 +1,6 @@
 use crate::update_commands::UpdateCommand;
 
-type Component = Box<dyn ComponentObject>;
+struct Component(Box<dyn ComponentObject>);
 
 // This is to implemented on any struct
 // which can be treated as a Component
