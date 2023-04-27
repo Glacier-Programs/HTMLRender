@@ -51,6 +51,17 @@ async fn run() {
             }
             _ => {}
         },
+        Event::MainEventsCleared => ws.window().request_redraw(),
+        Event::RedrawRequested(id) if id == ws.window().id() => {
+            match ws.render(){
+                Ok(_) => {},
+                Err(wgpu::SurfaceError::Lost) => ws.resize(*ws.size()),
+                // The system is out of memory, we should probably quit
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                // All other errors (Outdated, Timeout) should be resolved by the next frame
+                Err(e) => eprintln!("{:?}", e),
+            }
+        }
         _ => {}
     });
 }
