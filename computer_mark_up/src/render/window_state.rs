@@ -1,5 +1,7 @@
 use winit::window::Window;
 
+use super::{vertex::ComponentVertex, screen_details::{ScreenDetails, self}};
+
 pub struct WindowState {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -7,7 +9,9 @@ pub struct WindowState {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Window,
-    default_render_pipeline: wgpu::RenderPipeline
+    default_render_pipeline: wgpu::RenderPipeline,
+    screen_details: ScreenDetails,
+    screen_details_bind_group_layout: wgpu::BindGroupLayout
 }
 
 impl WindowState {
@@ -88,7 +92,9 @@ impl WindowState {
                 module: &shader,
                 entry_point: "vs_main",
                 // What vertex types can be passed in
-                buffers: &[],
+                buffers: &[
+                    ComponentVertex::desc()
+                ]
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
@@ -117,6 +123,24 @@ impl WindowState {
             multiview: None,
         });
 
+        // screen details
+        let screen_details = ScreenDetails::new(&config);
+        let screen_details_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("screen_details_bind_group_layout"),
+        });
+
         Self {
             window,
             surface,
@@ -124,7 +148,9 @@ impl WindowState {
             queue,
             config,
             size,
-            default_render_pipeline: render_pipeline
+            default_render_pipeline: render_pipeline,
+            screen_details,
+            screen_details_bind_group_layout
         }
     }
 

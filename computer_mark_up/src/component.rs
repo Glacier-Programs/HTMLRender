@@ -1,4 +1,7 @@
-use crate::update_commands::UpdateCommand;
+use crate::{
+    update_commands::UpdateCommand, 
+    render::component_mesh::ComponentMesh
+};
 
 struct Component(Box<dyn ComponentObject>);
 
@@ -16,19 +19,13 @@ pub trait ComponentObject{
      *     Returns information needed for rendering
      */
 
-    fn on_init(&mut self){
-    
-    }
+    fn on_init(&mut self){}
 
     fn update(&mut self) -> UpdateCommand{
         UpdateCommand::Void
     }
 
-    fn pre_render(&mut self){
+    fn pre_render(&mut self){}
 
-    }
-
-    fn get_sprite(&mut self){
-
-    }
+    fn get_sprite(&mut self) -> ComponentMesh;
 }
