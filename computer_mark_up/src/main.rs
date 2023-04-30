@@ -53,7 +53,7 @@ async fn run() {
         },
         Event::MainEventsCleared => ws.window().request_redraw(),
         Event::RedrawRequested(id) if id == ws.window().id() => {
-            match ws.render(){
+            match ws.render(Vec::new()){
                 Ok(_) => {},
                 Err(wgpu::SurfaceError::Lost) => ws.resize(*ws.size()),
                 // The system is out of memory, we should probably quit

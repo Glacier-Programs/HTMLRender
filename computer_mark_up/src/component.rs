@@ -3,7 +3,7 @@ use crate::{
     render::vertex::ComponentVertex
 };
 
-struct Component(Box<dyn ComponentObject>);
+pub struct Component(Box<dyn ComponentObject>);
 
 // This is to implemented on any struct
 // which can be treated as a Component

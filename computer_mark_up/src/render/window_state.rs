@@ -1,5 +1,8 @@
+
 use winit::window::Window;
 use wgpu::util::DeviceExt;
+
+use crate::component::Component;
 
 use super::{vertex::ComponentVertex, screen_details::{ScreenDetails, self}};
 
@@ -174,7 +177,7 @@ impl WindowState {
         }
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, components: Vec<Component>) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
