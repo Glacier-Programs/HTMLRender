@@ -9,6 +9,7 @@ mod render;
 mod components;
 mod update_commands;
 mod input_handler;
+mod scene_state;
 
 mod file_reader;
 
@@ -26,6 +27,7 @@ async fn run() {
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     let mut ws = render::window_state::WindowState::new(window).await;
     let mut ih = input_handler::InputHandler::new_default();
+    let mut ss = scene_state::SceneState::new_empty();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -53,7 +55,7 @@ async fn run() {
         },
         Event::MainEventsCleared => ws.window().request_redraw(),
         Event::RedrawRequested(id) if id == ws.window().id() => {
-            match ws.render(Vec::new()){
+            match ws.render(ss.get_components()){
                 Ok(_) => {},
                 Err(wgpu::SurfaceError::Lost) => ws.resize(*ws.size()),
                 // The system is out of memory, we should probably quit
