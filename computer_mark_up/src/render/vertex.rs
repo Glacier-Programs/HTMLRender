@@ -2,7 +2,7 @@
 #[repr(C)]
 #[derive(Copy, Clone, Debug, )]
 pub struct ComponentVertex{
-    position: [f32; 2]
+    pub position: [f32; 2]
 }
 
 impl ComponentVertex{

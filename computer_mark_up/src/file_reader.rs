@@ -8,6 +8,12 @@
 use std::fs;
 
 pub fn load_file(file_location: &str) -> String{
-    fs::read_to_string(file_location)
-        .expect("Should have been able to read the file")
+    match fs::read_to_string(file_location){
+        Ok(string) => { string },
+        Err(_) => { panic!("Something went oopsie loading a file!") }
+    }
+}
+
+pub fn read_file(file_data: String){
+    
 }

@@ -2,7 +2,7 @@
 use winit::window::Window;
 use wgpu::util::DeviceExt;
 
-use crate::component::Component;
+use crate::components::Component;
 
 use super::{vertex::ComponentVertex, screen_details::{ScreenDetails, self}};
 
@@ -15,7 +15,8 @@ pub struct WindowState {
     window: Window,
     default_render_pipeline: wgpu::RenderPipeline,
     screen_details: ScreenDetails,
-    screen_details_bind_group_layout: wgpu::BindGroupLayout
+    screen_details_bind_group_layout: wgpu::BindGroupLayout,
+    quad_index_buffer: wgpu::Buffer
 }
 
 impl WindowState {
@@ -147,6 +148,16 @@ impl WindowState {
             multiview: None,
         });
 
+        // Quad order
+        let quad_vertex_order = [0u32, 2u32, 1u32, 1u32, 2u32, 3u32];
+        let quad_index_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Quad Index Buffer"),
+                contents: bytemuck::cast_slice(quad_vertex_order.as_slice()),
+                usage: wgpu::BufferUsages::INDEX
+            }
+        );
+
         Self {
             window,
             surface,
@@ -156,7 +167,8 @@ impl WindowState {
             size,
             default_render_pipeline: render_pipeline,
             screen_details,
-            screen_details_bind_group_layout
+            screen_details_bind_group_layout,
+            quad_index_buffer
         }
     }
 

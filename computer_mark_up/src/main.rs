@@ -6,7 +6,7 @@ use winit::{
 
 mod render;
 
-mod component;
+mod components;
 mod update_commands;
 mod input_handler;
 
