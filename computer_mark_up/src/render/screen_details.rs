@@ -1,3 +1,5 @@
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Zeroable, bytemuck::Pod)]
 pub struct ScreenDetails{
     width: u32,
     height: u32,

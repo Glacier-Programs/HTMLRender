@@ -1,4 +1,5 @@
 use winit::window::Window;
+use wgpu::util::DeviceExt;
 
 use super::{vertex::ComponentVertex, screen_details::{ScreenDetails, self}};
 
@@ -75,6 +76,24 @@ impl WindowState {
         };
         surface.configure(&device, &config);
 
+        // screen details
+        let screen_details = ScreenDetails::new(&config);
+        let screen_details_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                }
+            ],
+            label: Some("screen_details_bind_group_layout"),
+        });
+
         // Shader 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -82,7 +101,9 @@ impl WindowState {
         });
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[
+                &screen_details_bind_group_layout
+            ],
             push_constant_ranges: &[],
         });
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -123,24 +144,6 @@ impl WindowState {
             multiview: None,
         });
 
-        // screen details
-        let screen_details = ScreenDetails::new(&config);
-        let screen_details_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }
-            ],
-            label: Some("screen_details_bind_group_layout"),
-        });
-
         Self {
             window,
             surface,
@@ -178,6 +181,25 @@ impl WindowState {
             label: Some("Render Encoder"),
         });
 
+        let screen_details_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Screen Details Buffer"),
+                contents: bytemuck::cast_slice(&[self.screen_details]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        let screen_details_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.screen_details_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: screen_details_buffer.as_entire_binding(),
+                }
+            ],
+            label: Some("screen_details_bind_group"),
+        });
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -198,6 +220,7 @@ impl WindowState {
             });
 
             render_pass.set_pipeline(&self.default_render_pipeline);
+            render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
         }
     
         // submit will accept anything that implements IntoIter

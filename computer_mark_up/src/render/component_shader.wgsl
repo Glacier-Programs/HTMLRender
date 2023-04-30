@@ -21,10 +21,14 @@ struct FragmentInput{
 
 // Vertex Shader
 
+@group(0) @binding(0)
+var<uniform> SCREENDETAILS: ScreenInfo;
+
 @vertex
 fn vs_main(input: ComponentInput) -> FragmentInput {
     // adjust position based on Scroll
     var out: FragmentInput;
+    let swidth = SCREENDETAILS.width;
     out.clip_position = vec4(input.position, 0.0, 1.0);
     // doing colors
     out.color = vec4(1.0, 1.0, 1.0, 1.0);

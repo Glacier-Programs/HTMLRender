@@ -1,6 +1,6 @@
 use crate::{
     update_commands::UpdateCommand, 
-    render::component_mesh::ComponentMesh
+    render::vertex::ComponentVertex
 };
 
 struct Component(Box<dyn ComponentObject>);
@@ -27,5 +27,5 @@ pub trait ComponentObject{
 
     fn pre_render(&mut self){}
 
-    fn get_sprite(&mut self) -> ComponentMesh;
+    fn get_sprite(&mut self) -> [ComponentVertex; 4];
 }
