@@ -1,6 +1,9 @@
 // this is the shader
 // all html components will use the same shader
 
+// The top left corner will be treated as (0,0)
+// since this makes it easier to visualize scrolling down
+
 // sort of like a camera
 struct ScreenInfo{
     width: u32,

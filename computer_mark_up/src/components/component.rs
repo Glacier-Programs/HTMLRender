@@ -25,5 +25,5 @@ pub trait ComponentObject{
 
     fn pre_render(&mut self){}
 
-    fn get_sprite(&mut self) -> [ComponentVertex; 4];
+    fn get_vertices(&self) -> [ComponentVertex; 4];
 }

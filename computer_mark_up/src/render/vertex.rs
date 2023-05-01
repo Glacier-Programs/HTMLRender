@@ -1,6 +1,6 @@
 // this corresponds to ComponentInput in 'component_shader.wgsl'
 #[repr(C)]
-#[derive(Copy, Clone, Debug, )]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ComponentVertex{
     pub position: [f32; 2]
 }

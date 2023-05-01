@@ -1,10 +1,15 @@
 
+use core::num;
+
 use winit::window::Window;
 use wgpu::util::DeviceExt;
 
 use crate::components::Component;
 
 use super::{vertex::ComponentVertex, screen_details::ScreenDetails};
+
+const QUAD_VERTEX_ORDER: [u32; 6] = [0u32, 2u32, 1u32, 1u32, 2u32, 3u32];
+
 
 pub struct WindowState {
     surface: wgpu::Surface,
@@ -15,8 +20,7 @@ pub struct WindowState {
     window: Window,
     default_render_pipeline: wgpu::RenderPipeline,
     screen_details: ScreenDetails,
-    screen_details_bind_group_layout: wgpu::BindGroupLayout,
-    quad_index_buffer: wgpu::Buffer
+    screen_details_bind_group_layout: wgpu::BindGroupLayout
 }
 
 impl WindowState {
@@ -148,16 +152,6 @@ impl WindowState {
             multiview: None,
         });
 
-        // Quad order
-        let quad_vertex_order = [0u32, 2u32, 1u32, 1u32, 2u32, 3u32];
-        let quad_index_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Quad Index Buffer"),
-                contents: bytemuck::cast_slice(quad_vertex_order.as_slice()),
-                usage: wgpu::BufferUsages::INDEX
-            }
-        );
-
         Self {
             window,
             surface,
@@ -167,8 +161,7 @@ impl WindowState {
             size,
             default_render_pipeline: render_pipeline,
             screen_details,
-            screen_details_bind_group_layout,
-            quad_index_buffer
+            screen_details_bind_group_layout
         }
     }
 
@@ -215,6 +208,48 @@ impl WindowState {
             label: Some("screen_details_bind_group"),
         });
 
+        // create vertex and index buffer
+        // to create the vertices, we want to create 
+        // >num_rendered< copies of QUAD_VERTEX_ORDER,
+        // then we want to go through each copy and increase
+        // each value in it by n*6 where n is the 
+        // number copy it is
+        let num_rendered = components.len();
+        let empty_indices: Vec<u32> = vec![0; num_rendered*6usize];
+        let indices: Vec<u32> = empty_indices
+            .iter()
+            .enumerate()
+            .map(|(index, _value)| {
+                // _value is discarded as it is random noise
+                let index_in_order_array = index % 6;
+                let unedited_value = QUAD_VERTEX_ORDER[index_in_order_array];
+                let increase = index as u32 / 6;
+                unedited_value + increase
+            })
+            .collect();
+        
+        let vertices = components
+            .iter()
+            .map(|component| component.get_vertices() )
+            .collect::<Vec<[ComponentVertex; 4]>>()
+            .concat();
+
+        let quad_index_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Quad Index Buffer"),
+                contents: bytemuck::cast_slice(indices.as_slice()),
+                usage: wgpu::BufferUsages::INDEX
+            }
+        );
+
+        let quad_vertex_buffer = self.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Quad Vertex Buffer"),
+                contents: bytemuck::cast_slice(vertices.as_slice()),
+                usage: wgpu::BufferUsages::VERTEX
+            }
+        );
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -236,6 +271,9 @@ impl WindowState {
 
             render_pass.set_pipeline(&self.default_render_pipeline);
             render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
+            render_pass.set_vertex_buffer(0, quad_vertex_buffer.slice(..));
+            render_pass.set_index_buffer(quad_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            render_pass.draw_indexed(0..components.len() as u32*6, 0, 0..1);
         }
     
         // submit will accept anything that implements IntoIter
