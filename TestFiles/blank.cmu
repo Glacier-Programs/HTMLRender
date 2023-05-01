@@ -1,0 +1,6 @@
+<main>
+    <comment> This should fill the while screen </comment>
+    <square geometry=FLOAT definition="c:(255,0,0);"/>
+    <comment> This should not fill the whole screen </comment>
+    <square geometry=CUSTOM definition="x:100; y:200; width:400; height:600; c:(0,0,255);"/>
+</main>

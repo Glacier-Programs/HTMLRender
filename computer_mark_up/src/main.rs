@@ -29,6 +29,10 @@ async fn run() {
     let mut ih = input_handler::InputHandler::new_default();
     let mut ss = scene_state::SceneState::new_empty();
 
+    ss.add_component(
+        components::SquareComponent::new([0.0, 0.0], 300.0, 200.0)
+    );
+
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             ref event,
