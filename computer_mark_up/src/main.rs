@@ -5,13 +5,20 @@ use winit::{
 };
 
 mod render;
-mod component;
+
+mod components;
 mod update_commands;
+mod input_handler;
+mod scene_state;
+
 mod file_reader;
 
 /*
  * There is a WindowState and a SceneState
- * Window 
+ * Window controls window events and rendering
+ * Scene controls everything else including:
+ * - Nonwindow Input
+ * - Component Management
  */
 
 async fn run() {
@@ -19,6 +26,16 @@ async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
     let mut ws = render::window_state::WindowState::new(window).await;
+    let mut ih = input_handler::InputHandler::new_default();
+    let mut ss = scene_state::SceneState::new_empty();
+
+    // Create textures
+    ws.load_color(render::color::Color::new([1.0, 1.0, 0.0, 1.0]));
+
+    // Create components
+    ss.add_component(
+        components::SquareComponent::new([0.0, 0.0], 800.0, 600.0)
+    );
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -44,6 +61,17 @@ async fn run() {
             }
             _ => {}
         },
+        Event::MainEventsCleared => ws.window().request_redraw(),
+        Event::RedrawRequested(id) if id == ws.window().id() => {
+            match ws.render(ss.get_components()){
+                Ok(_) => {},
+                Err(wgpu::SurfaceError::Lost) => ws.resize(*ws.size()),
+                // The system is out of memory, we should probably quit
+                Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
+                // All other errors (Outdated, Timeout) should be resolved by the next frame
+                Err(e) => eprintln!("{:?}", e),
+            }
+        }
         _ => {}
     });
 }
