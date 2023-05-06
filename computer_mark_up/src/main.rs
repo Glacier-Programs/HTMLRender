@@ -29,8 +29,12 @@ async fn run() {
     let mut ih = input_handler::InputHandler::new_default();
     let mut ss = scene_state::SceneState::new_empty();
 
+    // Create textures
+    ws.load_color(render::color::Color::new([1.0, 1.0, 0.0, 1.0]));
+
+    // Create components
     ss.add_component(
-        components::SquareComponent::new([-300.0, 200.0], 300.0, 200.0)
+        components::SquareComponent::new([0.0, 0.0], 800.0, 600.0)
     );
 
     event_loop.run(move |event, _, control_flow| match event {

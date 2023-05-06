@@ -24,13 +24,13 @@ impl SquareComponent{
 impl ComponentObject for SquareComponent{
     fn get_vertices(&self) -> [ComponentVertex; 4] {
         let trc = [self.top_left_corner[0] + self.width, self.top_left_corner[1]              ];
-        let blc = [self.top_left_corner[0],              self.top_left_corner[1] - self.height];
-        let brc = [self.top_left_corner[0] + self.width, self.top_left_corner[1] - self.height];
+        let blc = [self.top_left_corner[0],              self.top_left_corner[1] + self.height];
+        let brc = [self.top_left_corner[0] + self.width, self.top_left_corner[1] + self.height];
         [
-            ComponentVertex{ position: self.top_left_corner },
-            ComponentVertex{ position: trc },
-            ComponentVertex{ position: blc },
-            ComponentVertex{ position: brc }
+            ComponentVertex{ position: self.top_left_corner, texture_index: 0, texture_coords: [0.0, 1.0] },
+            ComponentVertex{ position: trc,                  texture_index: 0, texture_coords: [1.0, 0.0] },
+            ComponentVertex{ position: blc,                  texture_index: 0, texture_coords: [0.0, 0.0] },
+            ComponentVertex{ position: brc,                  texture_index: 0, texture_coords: [1.0, 0.0] }
         ]
     }
 }

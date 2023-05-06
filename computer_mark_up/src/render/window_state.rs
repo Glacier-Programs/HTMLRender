@@ -1,14 +1,15 @@
-
-use core::num;
-
 use winit::window::Window;
 use wgpu::util::DeviceExt;
 
 use crate::components::Component;
 
-use super::{vertex::ComponentVertex, screen_details::ScreenDetails};
+use super::{
+    vertex::ComponentVertex, 
+    screen_details::ScreenDetails,
+    texture::Texture, color::Color
+};
 
-const QUAD_VERTEX_ORDER: [u32; 6] = [0u32, 2u32, 1u32, 1u32, 2u32, 3u32];
+const QUAD_VERTEX_ORDER: [u32; 6] = [1u32, 2u32, 0u32, 3u32, 2u32, 1u32];
 
 
 pub struct WindowState {
@@ -20,7 +21,9 @@ pub struct WindowState {
     window: Window,
     default_render_pipeline: wgpu::RenderPipeline,
     screen_details: ScreenDetails,
-    screen_details_bind_group_layout: wgpu::BindGroupLayout
+    screen_details_bind_group_layout: wgpu::BindGroupLayout,
+    texture_bind_group_layout: wgpu::BindGroupLayout,
+    textures: Vec<Texture>
 }
 
 impl WindowState {
@@ -103,6 +106,31 @@ impl WindowState {
         });
 
         // Shader 
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        // This should match the filterable field of the
+                        // corresponding Texture entry above.
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+                label: Some("texture_bind_group_layout"),
+            });
+
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("component_shader.wgsl").into()),
@@ -110,7 +138,8 @@ impl WindowState {
         let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Component Render Pipeline Layout"),
             bind_group_layouts: &[
-                &screen_details_bind_group_layout
+                &screen_details_bind_group_layout,
+                &texture_bind_group_layout
             ],
             push_constant_ranges: &[],
         });
@@ -152,6 +181,8 @@ impl WindowState {
             multiview: None,
         });
 
+    
+
         Self {
             window,
             surface,
@@ -161,7 +192,9 @@ impl WindowState {
             size,
             default_render_pipeline: render_pipeline,
             screen_details,
-            screen_details_bind_group_layout
+            screen_details_bind_group_layout,
+            texture_bind_group_layout,
+            textures: Vec::new()
         }
     }
 
@@ -180,6 +213,11 @@ impl WindowState {
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
         }
+    }
+
+    pub fn load_color(&mut self, color: Color){
+        let color_as_text = color.as_texture(&self.device, &self.queue, &self.texture_bind_group_layout);
+        self.textures.push(color_as_text);
     }
 
     pub fn render(&mut self, components: &[Component]) -> Result<(), wgpu::SurfaceError> {
@@ -271,6 +309,8 @@ impl WindowState {
 
             render_pass.set_pipeline(&self.default_render_pipeline);
             render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
+            render_pass.set_bind_group(1, &self.textures[0].bind_group, &[]);
+
             render_pass.set_vertex_buffer(0, quad_vertex_buffer.slice(..));
             render_pass.set_index_buffer(quad_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             render_pass.draw_indexed(0..components.len() as u32*6, 0, 0..1);
