@@ -35,7 +35,7 @@ impl Color{
         Box::from( combined.as_slice() )
     }
 
-    pub fn as_texture(&self, device: &wgpu::Device, queue: &wgpu::Queue, bind_group_layout: &wgpu::BindGroupLayout) -> Texture{
+    pub fn as_texture(&self, device: &wgpu::Device, queue: &wgpu::Queue) -> Texture{
         /*
          * Create a one pixel image with the color being equal to that of self
          */
@@ -114,29 +114,11 @@ impl Color{
             ..Default::default()
         });
 
-        let bind_group = device.create_bind_group(
-            &wgpu::BindGroupDescriptor {
-                layout: &bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    }
-                ],
-                // convert String to &str
-                label: Some(&format!("Color: {:?}", self)[..]),
-            }
-        );
         Texture { 
             label: format!("Color: {:?}", self), 
             texture_surface, 
             sampler, 
             view, 
-            bind_group
         }
      }
 }

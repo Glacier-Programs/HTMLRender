@@ -1,3 +1,4 @@
+use std::num::NonZeroU32; // idk why this is needed, but the official example uses it for texture arrays
 use winit::window::Window;
 use wgpu::util::DeviceExt;
 
@@ -23,7 +24,8 @@ pub struct WindowState {
     screen_details: ScreenDetails,
     screen_details_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    textures: Vec<Texture>
+    textures: Vec<Texture>,
+    textures_bind_group: wgpu::BindGroup
 }
 
 impl WindowState {
@@ -54,14 +56,9 @@ impl WindowState {
         
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
-                features: wgpu::Features::empty(),
-                // WebGL doesn't support all of wgpu's features, so if
-                // we're building for the web we'll have to disable some.
-                limits: if cfg!(target_arch = "wasm32") {
-                    wgpu::Limits::downlevel_webgl2_defaults()
-                } else {
-                    wgpu::Limits::default()
-                },
+                // This allows arrays in uniforms
+                features: wgpu::Features::TEXTURE_BINDING_ARRAY | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING,
+                limits: wgpu::Limits::default(),
                 label: None,
             },
             None, // Trace path
@@ -117,7 +114,7 @@ impl WindowState {
                             view_dimension: wgpu::TextureViewDimension::D2,
                             sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         },
-                        count: None,
+                        count: NonZeroU32::new(1)
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
@@ -125,11 +122,29 @@ impl WindowState {
                         // This should match the filterable field of the
                         // corresponding Texture entry above.
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
+                        count: NonZeroU32::new(1)
                     },
                 ],
                 label: Some("texture_bind_group_layout"),
             });
+        // bind group requires at least one texture, so just use a placeholder
+        let black_texture = Color::new([0.0, 0.0, 0.0, 0.0]).as_texture(&device, &queue);
+        let textures_bind_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureViewArray(&[&black_texture.view]),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::SamplerArray(&[&black_texture.sampler]),
+                    }
+                ],
+                label: Some("diffuse_bind_group"),
+            }
+            );
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
@@ -181,8 +196,6 @@ impl WindowState {
             multiview: None,
         });
 
-    
-
         Self {
             window,
             surface,
@@ -194,7 +207,8 @@ impl WindowState {
             screen_details,
             screen_details_bind_group_layout,
             texture_bind_group_layout,
-            textures: Vec::new()
+            textures: Vec::new(),
+            textures_bind_group
         }
     }
 
@@ -216,8 +230,65 @@ impl WindowState {
     }
 
     pub fn load_color(&mut self, color: Color){
-        let color_as_text = color.as_texture(&self.device, &self.queue, &self.texture_bind_group_layout);
+        let color_as_text = color.as_texture(&self.device, &self.queue);
         self.textures.push(color_as_text);
+        self.reload_textures()
+    }
+
+    pub fn reload_textures(&mut self){
+        // This method forces the WindowState to reload each texture in WindowState.textures into the texture bind gorup
+        // This needs to match the number of textures present
+        let texture_bind_group_layout =
+            self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: NonZeroU32::new(self.textures.len() as u32)
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        // This should match the filterable field of the
+                        // corresponding Texture entry above.
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: NonZeroU32::new(self.textures.len() as u32)
+                    },
+                ],
+                label: Some("texture_bind_group_layout"),
+            });
+        
+        // it may be more efficient to make this a for t in self.textures
+        // then add every sample and view reference to slices passed into the bind group
+        self.textures_bind_group = self.device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &self.texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureViewArray(
+                            &self.textures.iter()
+                            .map(|t| &t.view)
+                            .collect::<Vec<&wgpu::TextureView>>()
+                        ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::SamplerArray(
+                            &self.textures.iter()
+                            .map(|t| &t.sampler)
+                            .collect::<Vec<&wgpu::Sampler>>()
+                        ),
+                    }
+                ],
+                label: Some("diffuse_bind_group"),
+            }
+        );
     }
 
     pub fn render(&mut self, components: &[Component]) -> Result<(), wgpu::SurfaceError> {
@@ -309,7 +380,7 @@ impl WindowState {
 
             render_pass.set_pipeline(&self.default_render_pipeline);
             render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
-            render_pass.set_bind_group(1, &self.textures[0].bind_group, &[]);
+            render_pass.set_bind_group(1, &self.textures_bind_group, &[]);
 
             render_pass.set_vertex_buffer(0, quad_vertex_buffer.slice(..));
             render_pass.set_index_buffer(quad_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
