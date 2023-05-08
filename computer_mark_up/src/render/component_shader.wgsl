@@ -10,7 +10,7 @@ struct ScreenInfo{
     height: u32,
     scroll_offsets: vec2<f32>
 };
- 
+
 struct ComponentInput{
     @location(0) position: vec2<f32>,
     @location(1) texture_index: u32,
@@ -21,7 +21,8 @@ struct ComponentInput{
 
 struct FragmentInput{
     @builtin(position) clip_position: vec4<f32>,
-    @location(1) texture_position: vec2<f32>
+    @location(1) texture_position: vec2<f32>,
+    @location(2) texture: u32
 }
 
 // Vertex Shader
@@ -29,10 +30,11 @@ struct FragmentInput{
 @group(0) @binding(0)
 var<uniform> SCREENDETAILS: ScreenInfo;
 
+// Texture data
 @group(1) @binding(0)
-var texture_data: texture_2d<f32>;
+var texture_data: binding_array<texture_2d<f32>>;
 @group(1)@binding(1)
-var texture_sampler: sampler;
+var texture_sampler: binding_array<sampler>;
 
 @vertex
 fn vs_main(input: ComponentInput) -> FragmentInput {
@@ -43,6 +45,7 @@ fn vs_main(input: ComponentInput) -> FragmentInput {
     out.clip_position = vec4(adjusted_x, adjusted_y, 0.0, 1.0);
     // doing colors
     out.texture_position = input.texture_position;
+    out.texture = input.texture_index;
     return out;
 }
 
@@ -50,5 +53,5 @@ fn vs_main(input: ComponentInput) -> FragmentInput {
 
 @fragment
 fn fs_main(frag: FragmentInput) -> @location(0) vec4<f32>{
-    return textureSample(texture_data, texture_sampler, frag.texture_position);
+    return textureSample(texture_data[frag.texture], texture_sampler[frag.texture], frag.texture_position);
 }

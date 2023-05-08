@@ -30,7 +30,7 @@ async fn run() {
     let mut ss = scene_state::SceneState::new_empty();
 
     // Create textures
-    ws.load_color(render::color::Color::new([1.0, 1.0, 0.0, 1.0]));
+    ws.load_color(render::color::Color::new([1.0, 0.5, 1.0, 1.0]));
 
     // Create components
     ss.add_component(
