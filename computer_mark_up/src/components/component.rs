@@ -1,6 +1,6 @@
 use crate::{
     update_commands::UpdateCommand, 
-    render::vertex::ComponentVertex
+    render::vertex::ComponentVertex, input_handler::InputHandler
 };
 
 pub type Component = Box<dyn ComponentObject>;
@@ -21,7 +21,7 @@ pub trait ComponentObject{
 
     fn on_init(&mut self){}
 
-    fn update(&mut self) -> UpdateCommand{ UpdateCommand::Void }
+    fn update(&mut self, input: &InputHandler) -> UpdateCommand{ UpdateCommand::Void }
 
     fn pre_render(&mut self){}
 

@@ -20,6 +20,7 @@ pub struct WindowState {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Window,
+    shader: wgpu::ShaderModule,
     default_render_pipeline: wgpu::RenderPipeline,
     screen_details: ScreenDetails,
     screen_details_bind_group_layout: wgpu::BindGroupLayout,
@@ -203,6 +204,7 @@ impl WindowState {
             queue,
             config,
             size,
+            shader,
             default_render_pipeline: render_pipeline,
             screen_details,
             screen_details_bind_group_layout,
@@ -238,7 +240,7 @@ impl WindowState {
     pub fn reload_textures(&mut self){
         // This method forces the WindowState to reload each texture in WindowState.textures into the texture bind gorup
         // This needs to match the number of textures present
-        let texture_bind_group_layout =
+        self.texture_bind_group_layout = 
             self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
@@ -286,9 +288,59 @@ impl WindowState {
                         ),
                     }
                 ],
-                label: Some("diffuse_bind_group"),
+                label: Some("textures_bind_group")
             }
         );
+        self.reconstruct_pipeline()
+    }
+
+    pub fn reconstruct_pipeline(&mut self){
+        // Recreates the component render pipeline with all currently loaded textures
+        let render_pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Component Render Pipeline Layout"),
+            bind_group_layouts: &[
+                &self.screen_details_bind_group_layout,
+                &self.texture_bind_group_layout
+            ],
+            push_constant_ranges: &[],
+        });
+        self.default_render_pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Component Render Pipeline"),
+            layout: Some(&render_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &self.shader,
+                entry_point: "vs_main",
+                // What vertex types can be passed in
+                buffers: &[
+                    ComponentVertex::desc()
+                ]
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &self.shader,
+                entry_point: "fs_main",
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: self.config.format,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                strip_index_format: None,
+                front_face: wgpu::FrontFace::Ccw, // standard
+                cull_mode: Some(wgpu::Face::Back),
+                polygon_mode: wgpu::PolygonMode::Fill,
+                unclipped_depth: false,
+                conservative: false,
+            },
+            depth_stencil: None, // unnecessary
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview: None,
+        });
     }
 
     pub fn render(&mut self, components: &[Component]) -> Result<(), wgpu::SurfaceError> {
@@ -325,37 +377,25 @@ impl WindowState {
         // number copy it is
         let num_rendered = components.len();
         let empty_indices: Vec<u32> = vec![0; num_rendered*6usize];
-        let indices: Vec<u32> = empty_indices
-            .iter()
-            .enumerate()
-            .map(|(index, _value)| {
-                // _value is discarded as it is random noise
-                let index_in_order_array = index % 6;
-                let unedited_value = QUAD_VERTEX_ORDER[index_in_order_array];
-                let increase = index as u32 / 6;
-                unedited_value + increase
-            })
-            .collect();
-        
-        let vertices = components
-            .iter()
-            .map(|component| component.get_vertices() )
-            .collect::<Vec<[ComponentVertex; 4]>>()
-            .concat();
 
-        let quad_index_buffer = self.device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Quad Index Buffer"),
-                contents: bytemuck::cast_slice(indices.as_slice()),
-                usage: wgpu::BufferUsages::INDEX
-            }
-        );
+        let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        for comp in components{
+            let vertices = comp.get_vertices();
+            let quad_vertex_buffer = self.device.create_buffer_init(
+                &wgpu::util::BufferInitDescriptor {
+                    label: Some("Quad Vertex Buffer"),
+                    contents: bytemuck::cast_slice(vertices.as_slice()),
+                    usage: wgpu::BufferUsages::VERTEX
+                }
+            );
+            vertex_buffers.push(quad_vertex_buffer);
+        }
 
-        let quad_vertex_buffer = self.device.create_buffer_init(
+        let index_buffer = self.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Quad Vertex Buffer"),
-                contents: bytemuck::cast_slice(vertices.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX
+                contents: bytemuck::cast_slice(&QUAD_VERTEX_ORDER),
+                usage: wgpu::BufferUsages::INDEX
             }
         );
 
@@ -382,9 +422,12 @@ impl WindowState {
             render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
             render_pass.set_bind_group(1, &self.textures_bind_group, &[]);
 
-            render_pass.set_vertex_buffer(0, quad_vertex_buffer.slice(..));
-            render_pass.set_index_buffer(quad_index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            render_pass.draw_indexed(0..components.len() as u32*6, 0, 0..1);
+            // index buffer is same for all
+            render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
+            for buffer in &vertex_buffers{
+                render_pass.set_vertex_buffer(0, buffer.slice(..));
+                render_pass.draw_indexed(0..6, 0, 0..1);
+            }
         }
     
         // submit will accept anything that implements IntoIter

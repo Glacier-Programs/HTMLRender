@@ -1,4 +1,10 @@
-use crate::components::{Component, ComponentObject};
+use crate::{
+    components::{
+        Component, 
+        ComponentObject
+    }, 
+    input_handler::InputHandler
+};
 
 pub struct SceneState{
     components: Vec<Component>
@@ -18,5 +24,12 @@ impl SceneState{
 
     pub fn get_components(&self) -> &[Component]{
         self.components.as_slice()
+    }
+
+    // fun parts
+    pub fn update(&mut self, input: &InputHandler){
+        for comp in &mut self.components{
+            let command = comp.update(input);
+        }
     }
 }
