@@ -48,7 +48,6 @@ async fn run() {
             window_id,
         } if window_id == ws.window().id() && !ih.handle_window_event(event) => match event {
             WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-            WindowEvent::CursorMoved { position, .. } => { ih.handle_mouse_motion(position) },
             WindowEvent::Resized(physical_size) => {
                 ws.resize(*physical_size);
             }

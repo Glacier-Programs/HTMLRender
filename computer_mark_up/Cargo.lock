@@ -283,6 +283,7 @@ dependencies = [
  "env_logger",
  "fs_extra",
  "glob",
+ "hashbrown",
  "image",
  "log",
  "pollster",

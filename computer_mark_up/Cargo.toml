@@ -14,6 +14,7 @@ bytemuck = {version="*", features=["derive"]}
 
 pollster = "*"
 image = "*"
+hashbrown = "*"
 
 [build-dependencies]
 anyhow = "1.0"
