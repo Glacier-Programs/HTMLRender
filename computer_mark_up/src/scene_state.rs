@@ -36,7 +36,7 @@ impl SceneState{
     pub fn build_default_component<C: DefaultBuild + 'static>(&mut self, ws: &WindowState){
         self.components.push(
             Box::new(
-                C::build_default(ws.device(), ws.queue(), ws.config())
+                C::build_default(ws.device(), ws.queue(), ws.config(), ws.texture_bind_group_layout())
             )
         )
     }
@@ -44,7 +44,7 @@ impl SceneState{
     pub fn build_custom_component<C: CustomBuild + 'static>(&mut self, ws: &WindowState, parameters: impl CustomBuildParameters){
         self.components.push(
             Box::new(
-                C::build_custom(ws.device(), ws.queue(), ws.config(), parameters)
+                C::build_custom(ws.device(), ws.queue(), ws.config(), ws.texture_bind_group_layout(), parameters)
             )
         )
     }

@@ -26,7 +26,7 @@ pub struct WindowState {
     screen_details_bind_group_layout: wgpu::BindGroupLayout,
     texture_bind_group_layout: wgpu::BindGroupLayout,
     textures: Vec<Texture>,
-    textures_bind_group: wgpu::BindGroup
+    //textures_bind_group: wgpu::BindGroup
 }
 
 impl WindowState {
@@ -115,7 +115,7 @@ impl WindowState {
                             view_dimension: wgpu::TextureViewDimension::D2,
                             sample_type: wgpu::TextureSampleType::Float { filterable: true },
                         },
-                        count: NonZeroU32::new(1)
+                        count: None
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
@@ -123,13 +123,14 @@ impl WindowState {
                         // This should match the filterable field of the
                         // corresponding Texture entry above.
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: NonZeroU32::new(1)
+                        count: None
                     },
                 ],
                 label: Some("texture_bind_group_layout"),
             });
         // bind group requires at least one texture, so just use a placeholder
-        let black_texture = Color::new([0.0, 0.0, 0.0, 0.0]).as_texture(&device, &queue);
+        let black_texture = Color::new([0.0, 0.0, 0.0, 0.0]).as_texture(&device, &queue, &texture_bind_group_layout);
+        /*
         let textures_bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
                 layout: &texture_bind_group_layout,
@@ -146,7 +147,7 @@ impl WindowState {
                 label: Some("diffuse_bind_group"),
             }
             );
-
+        */
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("component_shader.wgsl").into()),
@@ -197,6 +198,7 @@ impl WindowState {
             multiview: None,
         });
 
+        dbg!("Created WindowState");
         Self {
             window,
             surface,
@@ -210,7 +212,7 @@ impl WindowState {
             screen_details_bind_group_layout,
             texture_bind_group_layout,
             textures: Vec::new(),
-            textures_bind_group
+            //textures_bind_group
         }
     }
 
@@ -234,6 +236,10 @@ impl WindowState {
         &self.size
     }
 
+    pub fn texture_bind_group_layout(&self) -> &wgpu::BindGroupLayout{
+        &self.texture_bind_group_layout
+    }
+
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.size = new_size;
@@ -243,6 +249,7 @@ impl WindowState {
         }
     }
 
+    /* 
     pub fn load_color(&mut self, color: Color){
         let color_as_text = color.as_texture(&self.device, &self.queue);
         self.textures.push(color_as_text);
@@ -354,8 +361,10 @@ impl WindowState {
             multiview: None,
         });
     }
+    */
 
     pub fn render(&mut self, components: &[Component]) -> Result<(), wgpu::SurfaceError> {
+        dbg!("Started rendering...");
         let output = self.surface.get_current_texture()?;
         let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -381,16 +390,10 @@ impl WindowState {
             label: Some("screen_details_bind_group"),
         });
 
-        // create vertex and index buffer
-        // to create the vertices, we want to create 
-        // >num_rendered< copies of QUAD_VERTEX_ORDER,
-        // then we want to go through each copy and increase
-        // each value in it by n*6 where n is the 
-        // number copy it is
-        let num_rendered = components.len();
-        let empty_indices: Vec<u32> = vec![0; num_rendered*6usize];
-
+        // store values in Vec's so that thye have a longer lifetime
+        // than teh render_pass
         let mut vertex_buffers: Vec<wgpu::Buffer> = Vec::new();
+        let mut textures: Vec<&Texture> = Vec::new();
         for comp in components{
             let vertices = comp.get_vertices();
             let quad_vertex_buffer = self.device.create_buffer_init(
@@ -401,6 +404,7 @@ impl WindowState {
                 }
             );
             vertex_buffers.push(quad_vertex_buffer);
+            textures.push(comp.render())
         }
 
         let index_buffer = self.device.create_buffer_init(
@@ -432,12 +436,12 @@ impl WindowState {
 
             render_pass.set_pipeline(&self.default_render_pipeline);
             render_pass.set_bind_group(0, &screen_details_bind_group, &[]);
-            render_pass.set_bind_group(1, &self.textures_bind_group, &[]);
 
             // index buffer is same for all
             render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
-            for buffer in &vertex_buffers{
-                render_pass.set_vertex_buffer(0, buffer.slice(..));
+            for index in 0..vertex_buffers.len(){
+                render_pass.set_bind_group(1, &textures[index].bind_group, &[]);
+                render_pass.set_vertex_buffer(0, vertex_buffers[index].slice(..));
                 render_pass.draw_indexed(0..6, 0, 0..1);
             }
         }

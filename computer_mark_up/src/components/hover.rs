@@ -53,7 +53,7 @@ impl ComponentObject for HoverComponent{
         ]
     }
 
-    fn pre_render(&mut self) -> &crate::render::texture::Texture {
+    fn render(&self) -> &crate::render::texture::Texture {
         todo!()
     }
 }

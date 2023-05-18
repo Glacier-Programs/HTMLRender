@@ -43,15 +43,15 @@ impl ComponentObject for SquareComponent{
         ]
     }
 
-    fn pre_render(&mut self) -> &crate::render::texture::Texture {
-        todo!()
+    fn render(&self) -> &crate::render::texture::Texture {
+        &self.texture
     }
 }
 
 impl DefaultBuild for SquareComponent{
-    fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration) -> Self {
+    fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, texture_bind_group_layout: &wgpu::BindGroupLayout) -> Self {
         let color = Color::new([1.0, 0.0, 0.0, 1.0]);
-        let texture = color.as_texture(device, queue);
+        let texture = color.as_texture(device, queue, texture_bind_group_layout);
         Self { 
             top_left_corner: [0.0,0.0], 
             width: 400.0, 

@@ -26,7 +26,7 @@ pub trait ComponentObject{
 
     fn update(&mut self, input: &InputHandler) -> UpdateCommand{ UpdateCommand::Void }
 
-    fn pre_render(&mut self) -> &Texture;
+    fn render(&self) -> &Texture;
 
     fn get_vertices(&self) -> [ComponentVertex; 4];
 }
@@ -47,10 +47,10 @@ pub trait ComponentObject{
 // components at runtime
 
 pub trait DefaultBuild: ComponentObject{
-    fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration) -> Self;
+    fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, texture_bind_group_layout: &wgpu::BindGroupLayout) -> Self;
 }
 
 pub trait CustomBuildParameters{}
 pub trait CustomBuild: ComponentObject{
-    fn build_custom<P: CustomBuildParameters>(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, parameters: P) -> Self;
+    fn build_custom<P: CustomBuildParameters>(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, texture_bind_group_layout: &wgpu::BindGroupLayout, parameters: P) -> Self;
 }

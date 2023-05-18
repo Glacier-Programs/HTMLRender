@@ -32,9 +32,9 @@ var<uniform> SCREENDETAILS: ScreenInfo;
 
 // Texture data
 @group(1) @binding(0)
-var texture_data: binding_array<texture_2d<f32>>;
+var texture_data: texture_2d<f32>;
 @group(1)@binding(1)
-var texture_sampler: binding_array<sampler>;
+var texture_sampler: sampler;
 
 @vertex
 fn vs_main(input: ComponentInput) -> FragmentInput {
@@ -53,5 +53,5 @@ fn vs_main(input: ComponentInput) -> FragmentInput {
 
 @fragment
 fn fs_main(frag: FragmentInput) -> @location(0) vec4<f32>{
-    return textureSample(texture_data[frag.texture], texture_sampler[frag.texture], frag.texture_position);
+    return textureSample(texture_data, texture_sampler, frag.texture_position);
 }

@@ -15,6 +15,7 @@ pub struct Texture{
     pub(crate) texture_surface: wgpu::Texture,
     pub(crate) sampler: wgpu::Sampler,
     pub(crate) view: wgpu::TextureView,
+    pub(crate) bind_group: wgpu::BindGroup
 }
 
 impl Texture{
@@ -76,11 +77,29 @@ impl Texture{
             ..Default::default()
         });
 
+        let bind_group = device.create_bind_group(
+            &wgpu::BindGroupDescriptor {
+                layout: &texture_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&sampler),
+                    }
+                ],
+                label: Some("diffuse_bind_group"),
+            }
+            );
+
         Self{
             label: String::from(label),
             texture_surface,
             sampler,
-            view
+            view,
+            bind_group
         }
     }
 
