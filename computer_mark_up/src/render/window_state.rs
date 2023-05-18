@@ -214,6 +214,18 @@ impl WindowState {
         }
     }
 
+    pub fn device(&self) -> &wgpu::Device{
+        &self.device
+    }
+
+    pub fn config(&self) -> &wgpu::SurfaceConfiguration{
+        &self.config
+    }
+
+    pub fn queue(&self) -> &wgpu::Queue{
+        &self.queue
+    }
+
     pub fn window(&self) -> &Window {
         &self.window
     }

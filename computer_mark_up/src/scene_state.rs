@@ -1,9 +1,12 @@
 use crate::{
     components::{
         Component, 
-        ComponentObject
+        ComponentObject,
+        DefaultBuild,
+        CustomBuild,
+        CustomBuildParameters
     }, 
-    input_handler::InputHandler
+    input_handler::InputHandler, render::window_state::WindowState
 };
 
 pub struct SceneState{
@@ -17,9 +20,33 @@ impl SceneState{
          }
     }
 
+    /*
+     * IMPORTANT NOTE:
+     *    Every component object added to the scene has a static lifetime
+     *    This means that the data will never be dropped. Components should 
+     *    therefore be altered instead of replaced as replacing would lead to 
+     *    a memory leak
+     */
+
     // this may have to be changed to 'a eventually
     pub fn add_component<C: ComponentObject + 'static>(&mut self, component: C){
         self.components.push( Box::new(component) )
+    }
+
+    pub fn build_default_component<C: DefaultBuild + 'static>(&mut self, ws: &WindowState){
+        self.components.push(
+            Box::new(
+                C::build_default(ws.device(), ws.queue(), ws.config())
+            )
+        )
+    }
+
+    pub fn build_custom_component<C: CustomBuild + 'static>(&mut self, ws: &WindowState, parameters: impl CustomBuildParameters){
+        self.components.push(
+            Box::new(
+                C::build_custom(ws.device(), ws.queue(), ws.config(), parameters)
+            )
+        )
     }
 
     pub fn get_components(&self) -> &[Component]{

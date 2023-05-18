@@ -3,6 +3,9 @@ use crate::{
     render::{vertex::ComponentVertex, texture::Texture}, input_handler::InputHandler
 };
 
+// Box<> is a smart pointer which allows the reference to be borrowed
+// It also makes it much easier to manage storing unknown sized data than
+// using raw pointers or borrows
 pub type Component = Box<dyn ComponentObject>;
 
 // This is to implemented on any struct
@@ -39,15 +42,15 @@ pub trait ComponentObject{
 //
 // Either way, the component needs to implement
 // the build process on its own
+//
+// Builders are used to make it easier to construct
+// components at runtime
 
-
-pub trait DefaultBuild{
+pub trait DefaultBuild: ComponentObject{
     fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration) -> Self;
 }
 
 pub trait CustomBuildParameters{}
-
-pub trait CustomBuild{
-    fn buid_custom(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, parameters: impl CustomBuildParameters) -> Self;
+pub trait CustomBuild: ComponentObject{
+    fn build_custom<P: CustomBuildParameters>(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration, parameters: P) -> Self;
 }
-
