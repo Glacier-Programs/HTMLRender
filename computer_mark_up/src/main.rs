@@ -34,13 +34,18 @@ async fn run() {
     ws.load_color(render::color::Color::new([1.0, 0.5, 1.0, 1.0]));
     ws.load_color(render::color::Color::new([0.0, 1.0, 1.0, 1.0]));
 
+    let color = render::color::Color::new([1.0, 0.5, 1.0, 1.0]);
+    let color_as_texture = color.as_texture(ws.device(), ws.queue());
+
     // Create components
     ss.add_component(
-        components::SquareComponent::new([0.0, 0.0], 800.0, 600.0)
+        components::SquareComponent::new([0.0, 0.0], 800.0, 600.0, color_as_texture)
     );
     ss.add_component(
         components::HoverComponent::new([800.0, 0.0], 800.0, 600.0, 0, 1)
     );
+
+    ss.build_default_component::<components::SquareComponent>(&ws);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {

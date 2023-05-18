@@ -1,5 +1,12 @@
-use crate::render::vertex::ComponentVertex;
-use super::ComponentObject;
+use crate::render::{vertex::ComponentVertex, texture::Texture, color::Color};
+use super::{ComponentObject, DefaultBuild, CustomBuildParameters};
+
+pub struct SquareComponentParameters{
+    pub top_left_corner: [f32; 2],
+    pub width: f32,
+    pub height: f32
+}
+impl CustomBuildParameters for SquareComponentParameters{}
 
 /*
  * This is just a square rendered onto the screen
@@ -8,15 +15,17 @@ use super::ComponentObject;
 pub struct SquareComponent{
     top_left_corner: [f32; 2],
     width: f32,
-    height: f32
+    height: f32,
+    texture: Texture
 }
 
 impl SquareComponent{
-    pub fn new(corner: [f32; 2], width: f32, height: f32) -> Self{
+    pub fn new(corner: [f32; 2], width: f32, height: f32, texture: Texture) -> Self{
         Self { 
             top_left_corner: corner, 
             width, 
-            height 
+            height,
+            texture
         }
     }
 }
@@ -36,5 +45,18 @@ impl ComponentObject for SquareComponent{
 
     fn pre_render(&mut self) -> &crate::render::texture::Texture {
         todo!()
+    }
+}
+
+impl DefaultBuild for SquareComponent{
+    fn build_default(device: &wgpu::Device, queue: &wgpu::Queue, config: &wgpu::SurfaceConfiguration) -> Self {
+        let color = Color::new([1.0, 0.0, 0.0, 1.0]);
+        let texture = color.as_texture(device, queue);
+        Self { 
+            top_left_corner: [0.0,0.0], 
+            width: 400.0, 
+            height: 300.0, 
+            texture 
+        }
     }
 }

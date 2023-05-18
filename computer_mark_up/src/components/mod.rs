@@ -1,4 +1,4 @@
-mod component;
+pub mod component;
 mod hover;
 mod square;
 mod text;
