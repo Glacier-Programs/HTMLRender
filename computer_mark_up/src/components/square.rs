@@ -33,4 +33,8 @@ impl ComponentObject for SquareComponent{
             ComponentVertex{ position: brc,                  texture_index: 0, texture_coords: [1.0, 0.0] }
         ]
     }
+
+    fn pre_render(&mut self) -> &crate::render::texture::Texture {
+        todo!()
+    }
 }

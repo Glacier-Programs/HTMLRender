@@ -185,14 +185,23 @@ impl InputHandler{
         self.mouse_position
     }
 
+    // Get whether a specific key was pressed or not
     pub fn get_key_press(&self, key: &VirtualKeyCode) -> bool{
         // Try to return the value from the hashmap
         // if it's not in the hashmap (it will be), return false
         *self.key_presses.get(key).unwrap_or(&false)
     }
 
+    // Returns a list of all pressed keys
+    // Not fast, shouldn't be called a lot
     pub fn get_keys_pressed(&self) -> Vec<VirtualKeyCode>{
-        // TODO: return the keycode for all keys held
-        todo!()
+        self.key_presses
+            .iter()
+            // Remove any keys which aren't pressed
+            .filter(|(_, press_state)| **press_state)
+            // Drop the press state value
+            .map(|(key_code, _)| *key_code)
+            // turn into a Vec
+            .collect()
     }
 }
