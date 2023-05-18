@@ -5,6 +5,7 @@ use winit::{
 };
 
 mod render;
+mod collision;
 
 mod components;
 mod update_commands;
@@ -31,27 +32,22 @@ async fn run() {
 
     // Create textures
     ws.load_color(render::color::Color::new([1.0, 0.5, 1.0, 1.0]));
+    ws.load_color(render::color::Color::new([0.0, 1.0, 1.0, 1.0]));
 
     // Create components
     ss.add_component(
         components::SquareComponent::new([0.0, 0.0], 800.0, 600.0)
+    );
+    ss.add_component(
+        components::HoverComponent::new([800.0, 0.0], 800.0, 600.0, 0, 1)
     );
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             ref event,
             window_id,
-        } if window_id == ws.window().id() => match event {
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => *control_flow = ControlFlow::Exit,
+        } if window_id == ws.window().id() && !ih.handle_window_event(event) => match event {
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             WindowEvent::Resized(physical_size) => {
                 ws.resize(*physical_size);
             }
@@ -63,6 +59,7 @@ async fn run() {
         },
         Event::MainEventsCleared => ws.window().request_redraw(),
         Event::RedrawRequested(id) if id == ws.window().id() => {
+            ss.update(&ih);
             match ws.render(ss.get_components()){
                 Ok(_) => {},
                 Err(wgpu::SurfaceError::Lost) => ws.resize(*ws.size()),
@@ -71,7 +68,7 @@ async fn run() {
                 // All other errors (Outdated, Timeout) should be resolved by the next frame
                 Err(e) => eprintln!("{:?}", e),
             }
-        }
+        },
         _ => {}
     });
 }
