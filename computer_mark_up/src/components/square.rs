@@ -54,8 +54,8 @@ impl DefaultBuild for SquareComponent{
         let texture = color.as_texture(device, queue, texture_bind_group_layout);
         Self { 
             top_left_corner: [0.0,0.0], 
-            width: 400.0, 
-            height: 300.0, 
+            width: 800.0, 
+            height: 600.0, 
             texture 
         }
     }
